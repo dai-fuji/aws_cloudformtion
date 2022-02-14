@@ -1,0 +1,275 @@
+#----------------------
+# 全体
+#----------------------
+#AWSTemplateFormatVersion:
+#  "version date"  =>  テンプレートのバージョンを記載
+#Description:
+#  "String"  =>  テンプレートの説明文
+#Metadata:
+#  template metadata  =>  テンプレートに対する追加情報
+#Parameters:
+#  set of parameters  =>  実行時にユーザ入力を求めるパラメータ
+#Mappings:
+#  set of mappings  =>  キーと値のマッピング
+#Conditions:
+#  set of conditions  =>  条件名と条件判断内容
+#Transform:
+#  set of transforms  =>  サーバレスアプリケーションの場合に必要
+#Resources:
+#  set of resources  =>  スタックを構成するリソースやプロパティ
+#Outputs:
+#  set of Outputs  =>  スタック構築後にCFnから出力させる値
+
+#----------------------------------------------------------------------------
+# Resourcesの雛形
+#----------------------------------------------------------------------------
+# Resources:
+#   Logical ID:  =>  論理ID 任意の名称を付与する。他のリソースのパラメータで指定することがある
+#   Type: Resource type  =>  リソースタイプ EC2とかvpcとかを指定する。各リソースごとに決められた名称がある。
+#   Properties: Set of properties  =>  リソースごとのプロパティ 詳細設定
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: cfn-practice
+Resources: 
+#-----------------------------------------------------------------------------------------
+# VPC
+#-----------------------------------------------------------------------------------------
+  CfnPracticeVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: cfn-vpc
+          
+#-----------------------------------------------------------------------------------------
+# Subnet public/2/rails_app private/2/RDS
+#-----------------------------------------------------------------------------------------
+  CfnPracticePublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: "ap-northeast-1a" #直接指定するのは推奨されていない。疑似パラメータや関数で指定するのが一般的
+      CidrBlock: 10.0.10.0/24
+      MapPublicIpOnLaunch: false #内部のインスタンスが起動パブリックアクセスを許可するかどうか。デフォルトはfalse
+      #AssignIpv6AddressOnCreation: false #Ipv6使用しない場合は、記載しない
+      #Ipv6CidrBlock: String
+      #OutpostArn: String #AWS outposts:オンプレミス環境でAWSのサービスを実行する
+      Tags: 
+        - Key: Name
+          Value: cfn-public-subnet-1
+      VpcId: !Ref CfnPracticeVpc
+
+  CfnPracticePublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: "ap-northeast-1c"
+      CidrBlock: 10.0.11.0/24
+      MapPublicIpOnLaunch: false 
+      Tags: 
+        - Key: Name
+          Value: cfn-public-subnet-2
+      VpcId: !Ref CfnPracticeVpc
+  
+  CfnPracticePrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: "ap-northeast-1a"
+      CidrBlock: 10.0.20.0/24
+      MapPublicIpOnLaunch: false 
+      Tags: 
+        - Key: Name
+          Value: cfn-private-subnet-1
+      VpcId: !Ref CfnPracticeVpc
+
+  CfnPracticePrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: "ap-northeast-1c"
+      CidrBlock: 10.0.21.0/24
+      MapPublicIpOnLaunch: false 
+      Tags: 
+        - Key: Name
+          Value: cfn-private-subnet-2
+      VpcId: !Ref CfnPracticeVpc
+#-----------------------------------------------------------------------------------------
+# Internet gateway
+#-----------------------------------------------------------------------------------------
+  CfnInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: cfn-internet-gateway
+  
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref CfnPracticeVpc
+      InternetGatewayId: !Ref CfnInternetGateway
+#-----------------------------------------------------------------------------------------
+# Route table
+#-----------------------------------------------------------------------------------------
+  CfnRouteTable:
+    Type: "AWS::EC2::RouteTable" #ルートテーブルを作成
+    Properties:
+      Tags:
+      - Key: Name
+        Value: cfn-route-table
+      VpcId: !Ref CfnPracticeVpc
+
+  CfnRouteTableAssociation1:
+    Type: "AWS::EC2::SubnetRouteTableAssociation" #ルートテーブルとサブネットを関連付ける
+    Properties:
+      RouteTableId: !Ref CfnRouteTable
+      SubnetId: !Ref CfnPracticePublicSubnet1
+
+  CfnRouteTableAssociation2:
+    Type: "AWS::EC2::SubnetRouteTableAssociation" #ルートテーブルとサブネットを関連付ける
+    Properties:
+      RouteTableId: !Ref CfnRouteTable
+      SubnetId: !Ref CfnPracticePublicSubnet2
+
+  CfnRouteFromInternet:
+    Type: "AWS::EC2::Route" #ルートテーブルの設定をする
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref CfnInternetGateway
+      RouteTableId: !Ref CfnRouteTable
+  
+#-----------------------------------------------------------------------------------------
+# Security group
+#-----------------------------------------------------------------------------------------
+  CfnEC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SSH HTTP MySQL access for EC2
+      SecurityGroupIngress: #インバウンドルール
+        - IpProtocol: tcp #SSH
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp #HTTP
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp #Rails
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+      Tags:
+      - Key: Name
+        Value: cfn-security-group-EC2
+      VpcId: !Ref CfnPracticeVpc
+
+  CfnRDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: MySQL access for RDS
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+      Tags:
+      - Key: Name
+        Value: cfn-security-group-RDS
+      VpcId: !Ref CfnPracticeVpc
+#-----------------------------------------------------------------------------------------
+# EC2
+#-----------------------------------------------------------------------------------------
+  CfnRailsEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties: 
+      AvailabilityZone: "ap-northeast-1a"
+      ImageId: ami-03d79d440297083e3
+      InstanceType: t2.micro
+      KeyName: cfn-key
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: true
+          Description: attached security group for EC2
+          DeviceIndex: 0
+          GroupSet: 
+            - !Ref CfnEC2SecurityGroup
+          SubnetId: !Ref CfnPracticePublicSubnet1
+      Tags: 
+        - Key: Name
+          Value: cfn-rails-ec2-instance
+
+#-----------------------------------------------------------------------------------------
+# ELB
+#-----------------------------------------------------------------------------------------
+  CfnELB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      IpAddressType: ipv4
+      Scheme: internet-facing
+      SecurityGroups: 
+        - !Ref CfnEC2SecurityGroup
+      Subnets: 
+        - !Ref CfnPracticePublicSubnet1
+        - !Ref CfnPracticePublicSubnet2
+      Tags: 
+        - Key: Name
+          Value: kkkkk
+      Type: application
+
+  CfnELBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties: 
+      DefaultActions: 
+        - TargetGroupArn: !Ref CfnELBTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref CfnELB
+      Port: 80
+      Protocol: HTTP
+
+  CfnELBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties: 
+      Name: String
+      Port: 80
+      Protocol: HTTP
+      Tags: 
+        - Key: Name
+          Value: cfn-elb-target-group
+      Targets: 
+        - Id: !Ref CfnRailsEC2Instance
+      ProtocolVersion: HTTP1
+      TargetType: instance
+      VpcId: !Ref CfnPracticeVpc
+
+#-----------------------------------------------------------------------------------------
+# RDS
+#-----------------------------------------------------------------------------------------
+  CfnRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: 20
+      AvailabilityZone: !GetAtt 'CfnPracticePrivateSubnet1.AvailabilityZone'
+      DBInstanceClass: db.t2.micro
+      DBInstanceIdentifier: cfn-rds
+      DBName: CfnRDS
+      DBSubnetGroupName: !Ref 'CfnRDSSubnetGroup'
+      Engine: mysql
+      EngineVersion: 5.7.36
+      MasterUserPassword: Fuji0611
+      MasterUsername: admin
+      VPCSecurityGroups:
+        - !GetAtt 'CfnRDSSecurityGroup.GroupId'
+
+  CfnRDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties: 
+      DBSubnetGroupDescription: temp
+      DBSubnetGroupName: temp
+      SubnetIds: 
+        - !Ref 'CfnPracticePrivateSubnet1'
+        - !Ref 'CfnPracticePrivateSubnet2'
+
+#-----------------------------------------------------------------------------------------
+# S3
+#-----------------------------------------------------------------------------------------
+  CfnS3:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: forsaveimage
