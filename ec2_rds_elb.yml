@@ -1,6 +1,9 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: cfn-practice
 Parameters:
+#-----------------------------------------------------------------------------------------
+# RDS passsword
+#-----------------------------------------------------------------------------------------
   DBPassword:
     NoEcho: true
     Type: String
