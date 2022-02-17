@@ -1,35 +1,14 @@
-#----------------------
-# 全体
-#----------------------
-#AWSTemplateFormatVersion:
-#  "version date"  =>  テンプレートのバージョンを記載
-#Description:
-#  "String"  =>  テンプレートの説明文
-#Metadata:
-#  template metadata  =>  テンプレートに対する追加情報
-#Parameters:
-#  set of parameters  =>  実行時にユーザ入力を求めるパラメータ
-#Mappings:
-#  set of mappings  =>  キーと値のマッピング
-#Conditions:
-#  set of conditions  =>  条件名と条件判断内容
-#Transform:
-#  set of transforms  =>  サーバレスアプリケーションの場合に必要
-#Resources:
-#  set of resources  =>  スタックを構成するリソースやプロパティ
-#Outputs:
-#  set of Outputs  =>  スタック構築後にCFnから出力させる値
-
-#----------------------------------------------------------------------------
-# Resourcesの雛形
-#----------------------------------------------------------------------------
-# Resources:
-#   Logical ID:  =>  論理ID 任意の名称を付与する。他のリソースのパラメータで指定することがある
-#   Type: Resource type  =>  リソースタイプ EC2とかvpcとかを指定する。各リソースごとに決められた名称がある。
-#   Properties: Set of properties  =>  リソースごとのプロパティ 詳細設定
-
 AWSTemplateFormatVersion: 2010-09-09
 Description: cfn-practice
+Parameters:
+  DBPassword:
+    NoEcho: true
+    Type: String
+    MinLength: 8
+    MaxLength: 41
+    AllowedPattern: "[a-zA-Z0-9]*"
+    ConstraintDescription: "make sure input correct password again"
+
 Resources: 
 #-----------------------------------------------------------------------------------------
 # VPC
@@ -48,12 +27,10 @@ Resources:
   CfnPracticePublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties: 
-      AvailabilityZone: "ap-northeast-1a" #直接指定するのは推奨されていない。疑似パラメータや関数で指定するのが一般的
+      AvailabilityZone: !Select #!Selectでリストから選択
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
       CidrBlock: 10.0.10.0/24
-      MapPublicIpOnLaunch: false #内部のインスタンスが起動パブリックアクセスを許可するかどうか。デフォルトはfalse
-      #AssignIpv6AddressOnCreation: false #Ipv6使用しない場合は、記載しない
-      #Ipv6CidrBlock: String
-      #OutpostArn: String #AWS outposts:オンプレミス環境でAWSのサービスを実行する
       Tags: 
         - Key: Name
           Value: cfn-public-subnet-1
@@ -62,9 +39,10 @@ Resources:
   CfnPracticePublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties: 
-      AvailabilityZone: "ap-northeast-1c"
+      AvailabilityZone: !Select #!Selectでリストから選択
+        - 1
+        - Fn::GetAZs: !Ref AWS::Region
       CidrBlock: 10.0.11.0/24
-      MapPublicIpOnLaunch: false 
       Tags: 
         - Key: Name
           Value: cfn-public-subnet-2
@@ -73,9 +51,10 @@ Resources:
   CfnPracticePrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties: 
-      AvailabilityZone: "ap-northeast-1a"
+      AvailabilityZone: !Select #!Selectでリストから選択
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
       CidrBlock: 10.0.20.0/24
-      MapPublicIpOnLaunch: false 
       Tags: 
         - Key: Name
           Value: cfn-private-subnet-1
@@ -84,9 +63,10 @@ Resources:
   CfnPracticePrivateSubnet2:
     Type: AWS::EC2::Subnet
     Properties: 
-      AvailabilityZone: "ap-northeast-1c"
+      AvailabilityZone: !Select #!Selectでリストから選択
+        - 1
+        - Fn::GetAZs: !Ref AWS::Region
       CidrBlock: 10.0.21.0/24
-      MapPublicIpOnLaunch: false 
       Tags: 
         - Key: Name
           Value: cfn-private-subnet-2
@@ -180,7 +160,9 @@ Resources:
   CfnRailsEC2Instance:
     Type: AWS::EC2::Instance
     Properties: 
-      AvailabilityZone: "ap-northeast-1a"
+      AvailabilityZone: !Select #!Selectでリストから選択
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
       ImageId: ami-03d79d440297083e3
       InstanceType: t2.micro
       KeyName: cfn-key
@@ -252,7 +234,7 @@ Resources:
       DBSubnetGroupName: !Ref 'CfnRDSSubnetGroup'
       Engine: mysql
       EngineVersion: 5.7.36
-      MasterUserPassword: Fuji0611
+      MasterUserPassword: !Ref 'DBPassword'
       MasterUsername: admin
       VPCSecurityGroups:
         - !GetAtt 'CfnRDSSecurityGroup.GroupId'
