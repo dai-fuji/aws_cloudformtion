@@ -195,7 +195,7 @@ Resources:
         - !Ref CfnPracticePublicSubnet2
       Tags: 
         - Key: Name
-          Value: kkkkk
+          Value: cfn-elb
       Type: application
 
   CfnELBListener:
