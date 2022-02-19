@@ -1,6 +1,6 @@
 # Railsアプリケーションの実行環境構築
 1. 構成図
-![構成図](/構成図_cloudformation.jpg)
+![構成図](/aws-diagram.jpg)
 
 2. リソース
 - VPC
