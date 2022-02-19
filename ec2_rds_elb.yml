@@ -25,7 +25,7 @@ Resources:
           Value: cfn-vpc
 
 #-----------------------------------------------------------------------------------------
-# Subnet public/2/rails_app private/2/RDS
+# Subnet public/2groups private/2groups
 #-----------------------------------------------------------------------------------------
   CfnPracticePublicSubnet1:
     Type: AWS::EC2::Subnet
