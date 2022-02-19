@@ -23,7 +23,7 @@ Resources:
       Tags:
         - Key: Name
           Value: cfn-vpc
-          
+
 #-----------------------------------------------------------------------------------------
 # Subnet public/2/rails_app private/2/RDS
 #-----------------------------------------------------------------------------------------
@@ -74,6 +74,7 @@ Resources:
         - Key: Name
           Value: cfn-private-subnet-2
       VpcId: !Ref CfnPracticeVpc
+
 #-----------------------------------------------------------------------------------------
 # Internet gateway
 #-----------------------------------------------------------------------------------------
@@ -83,12 +84,13 @@ Resources:
       Tags:
       - Key: Name
         Value: cfn-internet-gateway
-  
+
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       VpcId: !Ref CfnPracticeVpc
       InternetGatewayId: !Ref CfnInternetGateway
+
 #-----------------------------------------------------------------------------------------
 # Route table
 #-----------------------------------------------------------------------------------------
@@ -118,7 +120,7 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref CfnInternetGateway
       RouteTableId: !Ref CfnRouteTable
-  
+
 #-----------------------------------------------------------------------------------------
 # Security group
 #-----------------------------------------------------------------------------------------
@@ -157,6 +159,7 @@ Resources:
       - Key: Name
         Value: cfn-security-group-RDS
       VpcId: !Ref CfnPracticeVpc
+
 #-----------------------------------------------------------------------------------------
 # EC2
 #-----------------------------------------------------------------------------------------
