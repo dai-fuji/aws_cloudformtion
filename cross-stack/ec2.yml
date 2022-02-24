@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: cfn-practice-ec2
+Resources: 
+#-----------------------------------------------------------------------------------------
+# EC2
+#-----------------------------------------------------------------------------------------
+  CfnRailsEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties: 
+      AvailabilityZone: !Select #!Selectでリストから選択
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+      ImageId: ami-03d79d440297083e3
+      InstanceType: t2.micro
+      KeyName: cfn-key
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: true
+          Description: attached security group for EC2
+          DeviceIndex: 0
+          GroupSet: 
+            - !Ref CfnEC2SecurityGroup
+          SubnetId: !ImportValue  PublicSubnet1
+      Tags: 
+        - Key: Name
+          Value: cfn-rails-ec2-instance
+  
+  CfnEC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SSH HTTP MySQL access for EC2
+      SecurityGroupIngress: #インバウンドルール
+        - IpProtocol: tcp #SSH
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp #HTTP
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp #Rails
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+      Tags:
+      - Key: Name
+        Value: cfn-security-group-EC2
+      VpcId: !ImportValue VPCID
+
+#-----------------------------------------------------------------------------------------
+# ELB
+#-----------------------------------------------------------------------------------------
+  CfnELB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      IpAddressType: ipv4
+      Scheme: internet-facing
+      SecurityGroups: 
+        - !Ref CfnEC2SecurityGroup
+      Subnets: 
+        - !ImportValue PublicSubnet1
+        - !ImportValue PublicSubnet2
+      Tags: 
+        - Key: Name
+          Value: cfn-elb
+      Type: application
+
+  CfnELBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties: 
+      DefaultActions: 
+        - TargetGroupArn: !Ref CfnELBTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref CfnELB
+      Port: 80
+      Protocol: HTTP
+
+  CfnELBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties: 
+      Name: String
+      Port: 80
+      Protocol: HTTP
+      Tags: 
+        - Key: Name
+          Value: cfn-elb-target-group
+      Targets: 
+        - Id: !Ref CfnRailsEC2Instance
+      ProtocolVersion: HTTP1
+      TargetType: instance
+      VpcId: !ImportValue VPCID
