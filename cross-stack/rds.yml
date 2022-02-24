@@ -1,6 +1,10 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: cfn-practice-rds
 Parameters:
+  MasterStackName:
+    Type: String
+    Default: Please input stack name of master.
+    
 #-----------------------------------------------------------------------------------------
 # RDS passsword
 #-----------------------------------------------------------------------------------------
@@ -20,7 +24,7 @@ Resources:
     Type: AWS::RDS::DBInstance
     Properties:
       AllocatedStorage: 20
-      AvailabilityZone: !ImportValue AZ
+      AvailabilityZone: {'Fn::ImportValue': !Sub '${MasterStackName}-AZ'}
       DBInstanceClass: db.t2.micro
       DBInstanceIdentifier: cfn-rds
       DBName: CfnRDS
@@ -38,8 +42,8 @@ Resources:
       DBSubnetGroupDescription: temp
       DBSubnetGroupName: temp
       SubnetIds: 
-        - !ImportValue  PrivateSubnet1
-        - !ImportValue  PrivateSubnet2
+        - {'Fn::ImportValue': !Sub '${MasterStackName}-PrivateSubnet1'}
+        - {'Fn::ImportValue': !Sub '${MasterStackName}-PrivateSubnet2'}
 
   CfnRDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -53,4 +57,4 @@ Resources:
       Tags:
       - Key: Name
         Value: cfn-security-group-RDS
-      VpcId: !ImportValue VPCID
+      VpcId: {'Fn::ImportValue': !Sub '${MasterStackName}-VPCID'}
