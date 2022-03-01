@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: root templete
+Parameters:
+  TemplateVPC:
+    Description: Templete file URL in S3
+    Type: String
+    Default: S3に保存されているVPCのテンプレートのURLを入力
+  
+  # TemplateEC2:
+  #   Description: Templete file URL in S3
+  #   Type: String
+  #   Default: S3に保存されているEC2のテンプレートのURLを入力
+
+  # TemplateRDS:
+  #   Description: Templete file URL in S3
+  #   Type: String
+  #   Default: S3に保存されているRDSのテンプレートのURLを入力
+
+  # TemplateS3:
+  #   Description: Templete file URL in S3
+  #   Type: String
+  #   Default: S3に保存されているS3のテンプレートのURLを入力
+
+Resources:
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Ref TemplateVPC
+  
+  # ec2:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: !Ref TemplateEC2
+
+  # rds:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: !Ref TemplateRDS
+  
+  # s3:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: !Ref TemplateS3
+
+#-----------------------------------------------------------------------------------------
+# Outputs
+#-----------------------------------------------------------------------------------------
+Outputs:
+  NestedStackNameMaster:
+    Value: !Sub ${AWS::StackName}
+    Description: Master name of nested stack
+    Export:
+      Name: NestedStackNameMaster

@@ -1,4 +1,8 @@
-nested-stack/
+nested-stack/root-stack/resources-template/ec2.yml
+
+nested-stack/root-stack/resources-template/rds.yml
+
+nested-stack/root-stack/resources-template/s3.yml
 
 *.drawio
 
